@@ -1,0 +1,1568 @@
+const logo_basic = Vue.extend({
+    props: {
+        'title': {
+            type: 'String',
+            required: true
+        },
+        'tagline': {
+            type: 'String',
+            default: function () {	return '' }
+        },
+        'description': {
+            type: 'String',
+            default: function () {	return '' }
+        },
+        'count': {
+            type: 'String',
+            default: function () {      return '' }
+        },
+        'titleFamily': {
+            type: 'String',
+            default: function () { return 'Montserrat' }
+        },
+        'titleVariant': {
+            type: 'String',
+            default: function () { return '600'	}
+        },
+        'taglineFamily': {
+            type: 'String',
+            default: function () { return 'Lora' }
+        },
+        'taglineVariant': {
+            type: 'String',
+            default: function () {return 'italic' }
+        },
+        'titleColor': {
+            type: 'Object',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+        'taglineColor': {
+            type: 'Object',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+        'backgroundColor': {
+            type: 'Object',
+            default: function(){ return { hex: '#000000'} }
+        },
+        'titleScale': {
+            type: 'Number',
+            default: function(){ return 1.8 }
+        },
+        'titleLetterSpace': {
+            type: 'Number',
+            default: function(){ return 0 }
+        },
+        'titleLineSpace': {
+            type: 'Number',
+            default: function(){ return 1.2 }
+        },
+        'taglineScale': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'taglineLetterSpace': {
+            type: 'Number',
+            default: function(){ return 0 }
+        },
+        'taglineLineSpace': {
+            type: 'Number',
+            default: function(){ return 1.2 }
+        },
+        'palette': {
+            type: 'Array',
+            default: function(){ return [] }
+        },
+        'autoScale': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+       'hasDomain': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+       'domains': {
+            type: 'String',
+            default: function() { return '' }
+        }
+    },
+    watch: {
+        title: function(){
+            this.getLogoThrottled();
+        },
+        tagline: function(){ this.getLogoThrottled() },
+        titleFamily: function(){ this.getLogo() },
+        titleVariant: function(){ this.getLogo() },
+        taglineFamily: function(){ this.getLogo() },
+        taglineVariant: function(){ this.getLogo() },
+        titleColor: function () { this.update() },
+        titleScale: function () { this.update() },
+        titleLetterSpace: function () { this.update() },
+        titleLineSpace: function () { this.update() },
+        taglineColor: function () { this.update() },
+        taglineScale: function () { this.update() },
+        taglineLetterSpace: function () { this.update() },
+        taglineLineSpace: function () { this.update() },
+        backgroundColor: function () { this.update() }
+    },
+    data: function() {
+        return {
+            loaded: false,
+            bbox: false,
+            svg: ''
+        }
+    },
+    template: '#logo',
+    created: function() {
+        this.getLogo();
+    },
+    updated: function(){
+        this.defaultUpdate();
+    },
+    methods: {
+        getLogo: function(){
+            var post = this.$props;
+            post.template = this.$options._componentTag;
+            
+            var key = String(JSON.stringify(post).hashCode());
+            if(window.post_cache && window.post_cache.hasOwnProperty(key)){
+                this.$nextTick(function (){
+                    this.process(window.post_cache[key]);
+                })
+            }
+            else{
+                $.ajax({
+                    url : '/logo-render',
+                    type : 'GET',
+                    data :  post,
+                    dataType: 'json', 
+                    tryCount : 0,
+                    retryLimit : 8,
+                    success : function(result) {
+                        if(!result){
+                            this.tryCount++;
+                            if (this.tryCount <= this.retryLimit) {
+                                //try again
+                                $.ajax(this);
+                                mixpanel.track("Batch Error 200", {'retry': this.tryCount});
+                                return;
+                            }
+                            mixpanel.track("Batch Error 200", {'retry': -1});
+                            return;
+                        }
+
+                        window.post_cache[key] = result;
+                        this.process(result);
+                    }.bind(this),
+                    error : function(xhr, textStatus, errorThrown ) {
+                        if(textStatus === 'abort'){
+                            return false;
+                        }
+                        this.tryCount++;
+                        if (this.tryCount <= this.retryLimit) {
+                            //try again
+                            mixpanel.track("Batch Error", {'retry': this.tryCount, 'status': textStatus, 'error': errorThrown, 'msg': xhr.responseJSON});
+                
+                            $.ajax(this);
+                            return;
+                        }
+                        mixpanel.track("Batch Error", {'retry': -1, 'status': textStatus, 'error': errorThrown, 'msg': xhr.responseJSON});         
+                    },
+                    timeout: 60000
+                });
+            }
+        },
+        getLogoThrottled: _throttle(function(){
+            // todo: not sure how to reference this.getLogo here
+            var post = this.$props;
+            post.template = this.$options._componentTag;
+            
+            var key = String(JSON.stringify(post).hashCode());
+            if(window.post_cache && window.post_cache.hasOwnProperty(key)){
+                this.$nextTick(function (){
+                    this.process(window.post_cache[key]);
+                })
+            }
+            else{
+                $.ajax({
+                    url : '/logo-render',
+                    type : 'GET',
+                    data :  post,  
+                    dataType: 'json', 
+                    tryCount : 0,
+                    retryLimit : 8,
+                    success : function(result) {
+                        if(!result){
+                            this.tryCount++;
+                            if (this.tryCount <= this.retryLimit) {
+                                //try again
+                                $.ajax(this);
+                                mixpanel.track("Batch Error 200", {'retry': this.tryCount});
+                                return;
+                            }
+                            mixpanel.track("Batch Error 200", {'retry': -1});
+                            return;
+                        }
+
+                        window.post_cache[key] = result;
+                        this.process(result);
+                    }.bind(this),
+                    error : function(xhr, textStatus, errorThrown ) {
+                        if(textStatus === 'abort'){
+                            return false;
+                        }
+                        this.tryCount++;
+                        if (this.tryCount <= this.retryLimit) {
+                            //try again
+                            mixpanel.track("Batch Error", {'retry': this.tryCount, 'status': textStatus, 'error': errorThrown, 'msg': xhr.responseJSON});
+                
+                            $.ajax(this);
+                            return;
+                        }
+                        mixpanel.track("Batch Error", {'retry': -1, 'status': textStatus, 'error': errorThrown, 'msg': xhr.responseJSON});         
+                    },
+                    timeout: 60000
+                });
+            }
+        }, 2000, {leading: false}),
+        defaultUpdate: function(){
+            $(this.$el).find('#title path').css('fill', this.titleColor.hex);
+            $(this.$el).find('#tagline path').css('fill', this.taglineColor.hex);
+            $(this.$el).find('.logo-inner').css('background-color', this.backgroundColor.hex);
+        },
+        defaultProcess: function(result){
+            this.svg = result.svg;
+              
+            var bbox = [];
+            var prevb = false;
+            
+            for(var i=0; i<result.elements.length; i++){
+                var b = result.elements[i];
+                
+                var bb = {
+                    id: b[0],
+                    x: parseFloat(b[1]),
+                    y: parseFloat(b[2]),
+                    width: parseFloat(b[3]),
+                    height: parseFloat(b[4]),
+                };
+                
+                if(i > 0 && prevb && bb.id.substr(0,4) === 'path' && prevb.id.substr(0,4) === 'path'){
+                    bb.kerning = bb.x-(prevb.x+prevb.width);
+                }
+                
+                prevb = bb;
+                bbox.push(bb);
+            }
+
+            this.bbox = bbox;				
+        },
+        getBox: function(id){
+            if(!this.bbox){
+                return false;
+            }
+            for(var i=0; i<this.bbox.length; i++){
+                if(this.bbox[i].id == id){
+                    return this.bbox[i];
+                }
+            }
+            
+            return false;
+        },
+        getCharBox: function(key){
+            var chars = [];
+            var found = false;
+            
+            for(var i=0; i<this.bbox.length; i++){
+                if(this.bbox[i].id == key){
+                    found = true;
+                }
+                else{
+                    if(found){
+                        if(this.bbox[i].id.substr(0,4) == 'path' || this.bbox[i].id.substr(0,4) == 'icon'){
+                            if(this.bbox[i].width < 0.000001 || this.bbox[i].height < 0.000001){
+                                continue;
+                            }
+                            chars.push(this.bbox[i]);
+                        }
+                        else{
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return chars;
+        },
+        defaultScale: function(){
+            if(!this.autoScale){
+                return false;
+            }
+            var bounds = {
+                width: 1024,
+                height: 700,
+                x: 0,
+                y: 34
+            };
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var titlescale = 1;
+            
+            // min width
+            if(titlewrap.bounds.width < 520){
+                titlescale = 520/titlewrap.bounds.width;
+            }
+            
+            var taglinescale = 1;
+            
+            var taglinewrap = this.wrap('tagline', this.tagline, bounds, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            var tscale = (titlewrap.bounds.width*titlescale)/taglinewrap.bounds.width;
+            
+            if(taglinewrap.lines.length == 1 && tscale*this.taglineScale < this.titleScale*titlescale){
+                taglinescale = tscale;
+            }
+                            
+            // set source data scale to false, to only scale once in lifetime
+            this.$emit('scale', titlescale, taglinescale);	
+        },
+        wrap: function(key, input, bounds, scale, letterspacing, linespacing, center){
+            var chars = this.getCharBox(key);
+            
+            function getwordwidth(word, scale, letterspacing){
+                
+                scale = parseFloat(scale);
+                letterspacing = parseFloat(letterspacing);
+                
+                var width = 0;
+                var first = true;
+                
+                for(var i=0; i<word.length; i++){
+                    if(isNumeric(word[i].kerning) && !first){
+                        width += (word[i].kerning + letterspacing)*scale;							
+                    }
+                    if(word[i].width > 0.000001){
+                        width += word[i].width*scale;
+                        first = false;							
+                    }
+                    
+                    
+                }
+                                    
+                return width;
+            }
+            
+            var words = input.match(/\S+/g);
+            
+            if(!words){
+                return {
+                    bounds: {x: 0, y: 0, width: 0, height: 0},
+                    lines: []
+                }
+            }
+            input = input.split('');
+            
+            var blacklist = [127];
+            var lines = [];
+            var w = 0;
+                            
+            for(var i=0; i<words.length; i++){
+                var line = [];
+                
+                for(var j=0; j<words[i].length; j++){
+                        var code = words[i].charCodeAt(j);
+                        if(code < 33 || blacklist.includes(code)){
+                            continue;
+                        }
+                        var c = words[i].substr(j, 1);
+                        var character = chars.shift();
+                        if(!character){
+                            continue;
+                        }
+                        character.letter = c;
+                        line.push(character);	
+                }
+                
+                var wordwidth = getwordwidth(line, scale, letterspacing);
+                
+                if(lines.length == 0){
+                    lines.push(line);
+                    w = wordwidth;
+                }
+                else if(line.length > 0){
+                    if(w + (line[0].kerning+letterspacing)*scale + wordwidth > bounds.width){
+                        lines.push(line);
+                        w = wordwidth;
+                    }
+                    else{
+                        lines[lines.length-1] = lines[lines.length-1].concat(line);
+                        w += (line[0].kerning+letterspacing)*scale + wordwidth;
+                    }
+                }
+            }
+            
+            var y = bounds.y;
+            
+            // offset all characters to top of svg
+            var offsety = 0;
+            if(lines && lines[0] && lines[0].length > 0){
+                offsety = lines[0][0].y;
+            }
+            for(i=0; i<lines.length; i++){
+                for(j=0; j<lines[i].length; j++){
+                    if(lines[i][j].y < offsety){
+                        offsety = lines[i][j].y;
+                    }
+                }
+            }
+            
+            // keep track of bounds and elements
+            var minx = 1024;
+            var miny = 768;
+            
+            var maxx = 0;
+            var maxy = 0;
+                            
+            for(i=0; i<lines.length; i++){
+                var x = bounds.x;
+                
+                if(center){
+                    x = bounds.x + (bounds.width-getwordwidth(lines[i], scale, letterspacing))/2;
+                }
+                
+                if(x < minx){
+                    minx = x;
+                }
+                
+                var maxheight = 0;
+                for(j=0; j<lines[i].length; j++){
+                    
+                    var letter = lines[i][j];
+                    
+                    if(j > 0 && letter.kerning && typeof letter.kerning != 'undefined'){
+                        x += (letter.kerning+parseFloat(letterspacing))*scale;
+                    }
+                    
+                    // svg applies rightmost transform first!
+                    $(this.$el).find('#'+letter.id).attr('transform','translate('+x+' '+(y + letter.y*scale - offsety)+') scale('+scale+') translate('+(-letter.x)+' '+(-letter.y)+')');
+                    
+                    x += letter.width*scale;
+                    
+                    if(letter.height*scale > maxheight){
+                        maxheight = letter.height*scale;
+                    }
+                    
+                    if(y + letter.y*scale - offsety < miny){
+                        miny = y + letter.y*scale - offsety;
+                    }
+                    if(y + letter.y*scale - offsety + letter.height*scale > maxy){
+                        maxy = y + letter.y*scale - offsety + letter.height*scale;
+                    }
+                    if(x > maxx){
+                        maxx = x;
+                    }
+                }
+                
+                y += maxheight*linespacing;
+            }
+            
+            return {
+                bounds: {x: minx, y: miny, width: maxx-minx, height: maxy-miny},
+                lines: lines
+            }
+        },
+        
+        distribute: function(items, spacing, globalbounds){
+            if(!globalbounds){
+                globalbounds = {x: 0, y:0, width: 1024, height: 768};
+            }
+            
+            // overall bounds and center
+            var height = 0;
+        
+            for(var i=0; i<items.length; i++){
+                height += items[i].bounds.height;
+            
+                if(i > 0 && items[i].bounds.height > 0){
+                    height += spacing[i-1];
+                }
+            }
+        
+            var y = globalbounds.y + (globalbounds.height - height)/2;
+
+            for(i=0; i<items.length; i++){
+                var offset = y - items[i].bounds.y;
+            
+                for(var j=0; j<items[i].lines.length; j++){
+                    for(var k=0; k<items[i].lines[j].length; k++){
+                        var letter = items[i].lines[j][k];
+                        var el = $(this.$el).find('#'+letter.id);
+                        var existing = el.attr('transform');
+                        if(!existing){
+                            existing = '';
+                        }
+                        el.attr('transform', 'translate(0 '+offset+') '+existing);
+                    }
+                }
+                
+                y += items[i].bounds.height;
+                if(i < spacing.length){
+                    y += spacing[i];
+                }
+            }
+        },
+        colorImage: function(element, img, rgb){
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            var ctx = canvas.getContext('2d');
+            //ctx.clearRect(0, 0, 200, 200);
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+            
+            var imgData = ctx.getImageData(0,0,img.width,img.height);
+            var data = imgData.data;
+            
+            for(var j=0; j<data.length; j+=4) {
+              data[j] = rgb.r;
+              data[j+1] = rgb.g;
+              data[j+2] = rgb.b;
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+            
+            base64 = canvas.toDataURL();
+            //element.removeAttr('xlink:href');
+            //element.attr('href', base64);
+            var e = element.get(0);
+            if(e){
+                e.setAttribute('xlink:href', base64);
+            }
+        }
+    }		
+})
+
+const logo_vertical = logo_basic.extend({
+    methods: {
+        process: function(result){
+            var r = this.defaultProcess(result);
+            this.defaultScale();
+            this.loaded = true;
+            return r;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            var title = $(this.$el).find('#title');
+            var tagline = $(this.$el).find('#tagline');
+            
+            
+            var titlebox = this.getBox('title');
+            
+            var titlewrap = this.wrap('title', this.title, {x: 50, y: 50, width: 924, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, {x: 50, y: 50, width: 924, height: 668}, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            
+            // align
+            this.distribute([titlewrap,taglinewrap], [24*this.taglineLineSpace]);
+        }
+    },
+    updated: function(){
+        // this is where the layout happens
+        this.$nextTick(function (){
+            this.update();
+        })
+    }
+});
+
+const logo_vertical_icon = logo_basic.extend({
+    props: {
+        'iconId': {
+            type: 'Number',
+            required: true
+        },
+        'hideIcon': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+        'iconScale': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'iconColor': {
+            type: 'String',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+    },
+    watch: {
+        iconId: function(){ this.getLogo() },
+        hideIcon: function () { this.update() },
+        iconScale: function () { this.update() },
+        iconColor: function () { this.update() }
+    },
+    methods: {
+        process: function(result){
+            var self = this;
+            
+            var icon_url = '../nounpreview/'+this.iconId+'.png';
+            var img = new Image();
+            img.onload = function(){
+                self.defaultProcess(result);
+                self.defaultScale();
+                self.loaded = true;
+            }
+            img.src = icon_url;
+            
+            return false;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            var titlewrap = this.wrap('title', this.title, {x: 50, y: 50, width: 924, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, {x: 50, y: 50, width: 924, height: 668}, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            
+            var icon = $(this.$el).find('#icon');
+            if(this.hideIcon){
+                icon.hide();
+                this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace]);
+            }
+            else{
+                // center icon
+                icon.show();
+                var dim = 150*this.iconScale;
+                icon.attr('x', 512 - dim/2);
+                icon.attr('y', 0);
+                icon.attr('width', dim);
+                icon.attr('height', dim);
+            
+                var iconwrap = {
+                    bounds: {x: 512-dim/2, y: 0, width: dim, height: dim},
+                    lines: [[{
+                        id: 'icon',
+                        x: 512-dim/2,
+                        y: 0,
+                        width: dim,
+                        height: dim
+                    }]]
+                };
+            
+                icon.removeAttr('transform');
+                this.distribute([iconwrap, titlewrap,taglinewrap], [18*this.titleLineSpace,18*this.taglineLineSpace]);
+            
+                // color icon
+                var self = this;
+                var icon_url = '../nounpreview/'+this.iconId+'.png';
+                var img = new Image();
+                img.onload = function(){
+                    self.colorImage(icon,img,tinycolor(self.iconColor.hex).toRgb());
+                }
+                img.src = icon_url;
+            }
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();
+        })
+    }
+});
+
+const logo_horizontal_icon = logo_basic.extend({
+    props: {
+        'iconId': {
+            type: 'Number',
+            required: true
+        },
+        'hideIcon': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+        'iconScale': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'iconSpace': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'iconColor': {
+            type: 'String',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+    },
+    data: function(){
+        return {
+            iconBox: false
+        }
+    },
+    watch: {
+        iconId: function(){ this.getLogo() },
+        hideIcon: function () { this.update() },
+        iconScale: function () { this.update() },
+        iconColor: function () { this.update() },
+        iconSpace: function () { this.update() }
+    },
+    methods: {
+        process: function(result){
+            var self = this;
+            self.iconBox = result.iconbox;
+            
+            var icon_url = '../nounpreview/'+this.iconId+'.png';
+            var img = new Image();
+            img.onload = function(){
+                self.defaultProcess(result);
+                self.scale();
+                self.loaded = true;
+            }
+            img.src = icon_url;
+            
+            return false;
+        },
+        scale: function(){
+            if(!this.autoScale){
+                return false;
+            }
+            var icon_width = 150*this.iconScale*(this.iconBox.width/200);
+            var icon_height = 150*this.iconScale*(this.iconBox.height/200);
+            var spacing = 50*this.iconSpace;
+            
+            var titlespace = 900-icon_width-spacing;
+            
+            var bounds = {
+                x: 0,
+                y: 0,
+                width: titlespace,
+                height: 700
+            };
+            
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, false);
+            var titlescale = 1;
+            
+            // min width
+            if(titlewrap.bounds.width < 420){
+                titlescale = 420/titlewrap.bounds.width;
+            }
+            
+            if(titlewrap.bounds.width > titlespace){
+                titlescale = titlespace/titlewrap.bounds.width;
+            }
+            
+            var taglinescale = 1;
+            
+            var taglinewrap = this.wrap('tagline', this.tagline, bounds, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, false);
+            var tscale = (titlewrap.bounds.width*titlescale)/taglinewrap.bounds.width;
+            
+            if(taglinewrap.lines.length == 1 && tscale*this.taglineScale < this.titleScale*titlescale){
+                taglinescale = tscale;
+            }
+            
+            // align icon vertically
+            var iconscale = 1;
+            var textheight = titlewrap.bounds.height*titlescale;
+            if(this.tagline && taglinewrap.bounds.height > 0){
+                textheight += taglinewrap.bounds.height*taglinescale + 18*this.taglineLineSpace;
+            }
+            iconscale = textheight/icon_height;
+            
+            var finalwidth = iconscale*icon_width + spacing + titlewrap.bounds.width*titlescale;
+            if(finalwidth > 800){
+                titlescale *= 800/finalwidth;
+                taglinescale *= 800/finalwidth;
+                iconscale *= 800/finalwidth;
+            }
+                            
+            this.$emit('scale', titlescale, taglinescale, iconscale);	
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            // center icon
+            var icon = $(this.$el).find('#icon');
+            
+            if(this.hideIcon){
+                icon.hide();
+                var titlewrap = this.wrap('title', this.title, {x: 50, y: 50, width: 924, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+                var taglinewrap = this.wrap('tagline', this.tagline, {x: 50, y: 50, width: 924, height: 668}, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+                this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace]);
+                $(this.$el).find('#logo-center').removeAttr('transform');
+            }
+            else{
+                var icon_width = 150*this.iconScale*(this.iconBox.width/200);
+                var icon_height = 150*this.iconScale*(this.iconBox.height/200);
+                
+                icon.show();
+                icon.attr('x', -150*this.iconScale*(this.iconBox.offsetx/200));
+                icon.attr('y', 384 - icon_height/2 - 150*this.iconScale*(this.iconBox.offsety/200));
+                icon.attr('width', 150*this.iconScale);
+                icon.attr('height', 150*this.iconScale);
+            
+                var spacing = 50*this.iconSpace;
+                var titlewrap = this.wrap('title', this.title, {x: icon_width+spacing, y: 50, width: 950-icon_width, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, false);
+                var taglinewrap = this.wrap('tagline', this.tagline, {x: icon_width+spacing, y: 50, width: 950-icon_width, height: 668}, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, false);
+
+                icon.removeAttr('transform');
+                this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace]);
+            
+                $(this.$el).find('#logo-center').attr('transform', 'translate('+0.5*(1024-icon_width-titlewrap.bounds.width-spacing)+' 0)');
+            
+                // color icon
+                var self = this;
+                var icon_url = '../nounpreview/'+this.iconId+'.png';
+                var img = new Image();
+                img.onload = function(){
+                    self.colorImage(icon,img,tinycolor(self.iconColor.hex).toRgb());
+                }
+                img.src = icon_url;
+            }
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();
+        })
+    }
+});
+
+const logo_icon_replacement = logo_basic.extend({
+    props: {
+        'iconId': {
+            type: 'Number',
+            required: true
+        },
+        'nthChar': {
+            type: 'Number',
+            required: true
+        },
+        'iconColor': {
+            type: 'String',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+        'iconScale': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'hideIcon': {
+            type: 'Boolean',
+            default: function(){ return false }
+        }
+    },
+    data: function(){
+        return {
+            iconBox: false
+        }
+    },
+    watch:{
+        iconId: function(){ this.getLogo() },
+        hideIcon: function(){ this.update() },
+        nthChar: function(){ this.update() },
+        iconColor: function(){ this.update() },
+        iconScale: function(){ this.update() }
+    },
+    methods: {
+        process: function(result){
+            var self = this;
+            this.iconBox = result.iconbox;
+            var icon_url = '../nounpreview/'+this.iconId+'.png';
+            var img = new Image();
+            img.onload = function(){
+                self.defaultProcess(result);
+                self.scale();
+                self.loaded = true;
+            }
+            img.src = icon_url;
+            return false;
+        },
+        scale: function(){
+            if(!this.autoScale){
+                return false;
+            }
+            var bounds = {
+                width: 1024,
+                height: 700,
+                x: 0,
+                y: 34
+            };
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var titlescale = 1;
+            
+            var titlewidth = titlewrap.bounds.width;
+            
+            var index = this.get_icon_index();
+            var letter = this.bbox[index];
+            
+            titlewidth -= letter.width*this.titleScale;
+            
+            var localscale = letter.height/this.iconBox.height;
+            titlewidth += this.iconBox.width * localscale * this.iconScale * this.titleScale;
+                            
+            // min width
+            if(titlewidth < 520){
+                titlescale = 520/titlewidth;
+            }
+            
+            var taglinescale = 1;
+            
+            var taglinewrap = this.wrap('tagline', this.tagline, bounds, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            if(taglinewrap.lines.length == 1 && taglinewrap.bounds.width > titlewidth*titlescale){
+                taglinescale = (titlewidth*titlescale)/taglinewrap.bounds.width;
+            }
+            
+            //console.log(titlescale, taglinescale, titlewidth, this.iconBox, taglinewrap.lines.length, this.$el);
+            
+            // set source data scale to false, to only scale once in lifetime
+            this.$emit('scale', titlescale, taglinescale);	
+        },
+        get_icon_index: function(){
+            var found = false;
+            var count = 0;
+            var index = 0;
+            for(var i=0; i<this.bbox.length; i++){
+                if(found){
+                    if(this.nthChar == count){
+                        index = i;
+                        break;
+                    }
+                    count++;
+                }
+                if(this.bbox[i].id == 'title'){
+                    found = true;
+                }
+            }
+            
+            return index;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            if(!this.bbox){
+                return false;
+            }
+            
+            var index = this.get_icon_index();
+            var letter = this.bbox[index];
+            
+            if(this.hideIcon){
+                if(letter.id == 'icon'){
+                    for(i=0; i<this.bbox.length; i++){
+                        if(this.bbox[i].id == 'icon' && this.bbox[i].replaced){
+                            this.bbox[i] = this.bbox[i].replaced;
+                            break;
+                        }
+                    }
+                }
+                $(this.$el).find('path').show();
+                $(this.$el).find('#icon').hide();
+            }
+            else{
+                if(letter.id != 'icon'){
+                    for(i=0; i<this.bbox.length; i++){
+                        if(this.bbox[i].id == 'icon' && this.bbox[i].replaced){
+                            this.bbox[i] = this.bbox[i].replaced;
+                            break;
+                        }
+                    }
+                
+                    var localscale = letter.height/this.iconBox.height;
+                
+                    $(this.$el).find('path').show();
+                    $(this.$el).find('#'+letter.id).hide();
+                
+                    var icon = $(this.$el).find('#icon');
+                    
+                    icon.show();
+                    icon.removeAttr('transform');
+                
+                    var dim = 200 * localscale * this.iconScale;
+                
+                    icon.attr('x', letter.x - this.iconBox.offsetx*localscale*this.iconScale);
+                    icon.attr('y', letter.y - this.iconBox.offsety*localscale*this.iconScale - 0.5*(this.iconBox.height*localscale*(this.iconScale-1)));
+                    icon.attr('width', dim);
+                    icon.attr('height', dim);
+                
+                    var replacement = {
+                        id: 'icon',
+                        width: this.iconBox.width * localscale * this.iconScale,
+                        height: letter.height * this.iconScale,
+                        x: letter.x,
+                        y: letter.y,
+                        letter: letter.letter,
+                        replaced: letter
+                    };				
+                
+                    if(isNumeric(letter.kerning)){
+                        replacement.kerning = letter.kerning;
+                    }
+                
+                    this.bbox[index] = replacement;
+                }
+                else if(letter.replaced){
+                    $(this.$el).find('#'+letter.replaced.id).hide();
+                
+                    var icon = $(this.$el).find('#icon');
+                    icon.show();
+                    var localscale = letter.replaced.height/this.iconBox.height;
+                    var dim = 200 * localscale * this.iconScale;
+                
+                    letter.width = this.iconBox.width * localscale * this.iconScale;
+                    letter.height = letter.replaced.height * this.iconScale;
+                
+                    icon.attr('x', letter.replaced.x - this.iconBox.offsetx*localscale*this.iconScale);
+                    icon.attr('y', letter.replaced.y - this.iconBox.offsety*localscale*this.iconScale - 0.5*(this.iconBox.height*localscale*(this.iconScale-1)));
+                    icon.attr('width', dim);
+                    icon.attr('height', dim);
+                }
+            }
+            
+            var titlewrap = this.wrap('title', this.title, {x: 50, y: 50, width: 924, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, {x: 50, y: 50, width: 924, height: 668}, this.taglineScale, this.taglineLetterSpace, this.titleLineSpace, true);
+            
+            this.distribute([titlewrap,taglinewrap], [24*this.taglineLineSpace]);
+            
+            // color icon
+            var self = this;
+            var icon_url = '../nounpreview/'+this.iconId+'.png';
+            var img = new Image();
+            img.onload = function(){
+                self.colorImage($(self.$el).find('#icon'),img,tinycolor(self.iconColor.hex).toRgb());
+            }
+            img.src = icon_url;
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();
+        })
+    }
+});
+
+const logo_icon_frame = logo_basic.extend({
+    props: {
+        'iconId': {
+            type: 'Number',
+            required: true
+        },
+        'hideIcon': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+        'iconScale': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'iconColor': {
+            type: 'String',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+        'iconBounds': {
+            type: 'String',
+            default: function(){ return false }
+        }
+    },
+    data: function(){
+        return {
+            iconBox: false
+        }
+    },
+    watch:{
+        iconId: function(){ this.getLogo() },
+        hideIcon: function(){ this.update() },
+        iconColor: function(){ this.update() },
+        iconScale: function(){ this.update() }
+    },
+    methods: {
+        scale: function(){
+            if(!this.autoScale){
+                return false;
+            }
+            var dim = 640 * this.iconScale * 0.85;
+            var bounds = {
+                x: 0,
+                y: 0,
+                width: ((this.iconBox.maxx - this.iconBox.minx)/200)*dim,
+                height: ((this.iconBox.maxy - this.iconBox.miny)/200)*dim
+            };
+            
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            
+            // set source data scale to false, to only scale once in lifetime
+            this.$emit('scale', bounds.width/titlewrap.bounds.width);		
+        },
+        process: function(result){
+            var self = this;
+            
+            var icon_url = './icon_large/?id='+this.iconId;
+            
+            var img = new Image();
+            
+            if(self.iconBounds){
+                self.iconBox = self.iconBounds;
+                img.onload = function(){
+                    self.defaultProcess(result);
+                    self.scale();
+                    self.loaded = true;
+                }
+            }
+            else{
+                img.onload = function(){
+                    // get frame via canvas
+                    self.defaultProcess(result);
+                    var canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                
+                    var context = canvas.getContext('2d');
+            
+                    context.drawImage(img,0,0,200,200);
+                    var imgData = context.getImageData(0,0,canvas.width,canvas.height);
+                    var data = imgData.data;
+                
+                    // enumerate all pixels
+                    // each pixel's r,g,b,a datum are stored in separate sequential array elements
+                    var maxx = 199;
+                    var minx = 0;
+                    var maxy = 199;
+                    var miny = 0;
+                
+                    // horizontal 
+                    for(var x = 100; x < 200; x++) {
+                        if(hit(data, x, 100)){
+                            maxx = x;
+                            break;
+                        }
+                    }
+                    for(x=100; x >= 0; x--){
+                        if(hit(data, x, 100)){
+                            minx = x;
+                            break;
+                        }
+                    }
+                
+                    // vertical
+                    for(var y=100; y < 200; y++){
+                        if(hit(data, 100, y)){
+                            maxy = y;
+                            break;
+                        }
+                    }
+                    for(y=100; y >= 0; y--){
+                        if(hit(data, 100, y)){
+                            miny = y;
+                            break;
+                        }
+                    }
+                
+            
+                    // fudge factor for slants (rectangular bounds tend to be underestimated without this)
+                    var f = 15;
+                
+                    // slant 1
+                    for(x=100; x < 200; x++){
+                        if(hit(data, x, x)){
+                            if(maxx < 199 && x+f < maxx){
+                                maxx = x+f;
+                            }
+                            if(x+f < maxy){
+                                maxy = x+f;
+                            }
+                            break;
+                        }
+                    }
+                
+                    // slant 2
+                    for(x=100; x >= 0; x--){
+                        if(hit(data, x, x)){
+                            if(minx > 0 && x-f > minx){
+                                minx = x-f;
+                            }
+                            if(x-f > miny){
+                                miny = x-f;
+                            }
+                            break;
+                        }
+                    }
+                
+                    // slant 3
+                    for(x=100; x >= 0; x--){
+                        if(hit(data, x, 199-x)){
+                            if(minx > 0 && x-f > minx){
+                                minx = x-f;
+                            }
+                            if((199-x)+f < maxy){
+                                maxy = (199-x)+f;
+                            }
+                            break;
+                        }
+                    }
+                
+                    // slant 4
+                    for(x=100; x < 200; x++){
+                        if(hit(data, x, 199-x)){
+                            if(maxx < 199 && x+f < maxx){
+                                maxx = x+f;
+                            }
+                            if((199-x)-f > miny){
+                                miny = (199-x)-f;
+                            }
+                            break;
+                        }
+                    }
+            
+                    self.iconBox = {
+                        minx: minx,
+                        maxx: maxx,
+                        miny: miny,
+                        maxy: maxy
+                    };
+                    
+                    self.scale();
+                    self.loaded = true;
+                }
+            }
+            img.src = icon_url;
+            return false;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            var icon = $(this.$el).find('#icon');
+            var dim = 640 * this.iconScale;
+            
+            icon.removeAttr('transform');
+            
+            icon.attr('x', 512 - dim/2);
+            icon.attr('y', 384 - dim/2);
+            icon.attr('width', dim);
+            icon.attr('height', dim);
+                            
+            var bounds = {
+                x: (this.iconBox.minx/200)*dim + (512 - dim/2),
+                y: (this.iconBox.miny/200)*dim + (384 - dim/2),
+                width: ((this.iconBox.maxx - this.iconBox.minx)/200)*dim,
+                height: ((this.iconBox.maxy - this.iconBox.miny)/200)*dim
+            };
+            
+            //console.log('bounds', bounds, this.iconBox.minx, this.iconBox.maxx, dim);
+            
+            //var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'rect'); //Create a path in SVG's namespace
+            //newElement.setAttribute("x",bounds.x);
+            //newElement.setAttribute("y",bounds.y);
+            //newElement.setAttribute("width",bounds.width);
+            //newElement.setAttribute("height",bounds.height);
+            //newElement.style.fill = "none";
+            //newElement.style.stroke = "#f00"; //Set stroke colour
+            //newElement.style.strokeWidth = "1px"; //Set stroke width
+            //$(this.$el).find('svg').get(0).appendChild(newElement);
+                            
+            // shrink bounds to 0.95
+            bounds.width *= 0.9;
+            bounds.height *= 0.9;
+            bounds.x += bounds.width*0.05;
+            bounds.y += bounds.height*0.05;
+            
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, bounds, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            
+            this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace], bounds);
+            
+            if(this.hideIcon){
+                icon.hide();
+            }
+            else{
+                icon.show();
+            }
+            // color icon
+            var self = this;
+            var icon_url = './icon_large/?id='+this.iconId;;
+            var img = new Image();
+            img.onload = function(){
+                self.colorImage(icon,img,tinycolor(self.iconColor.hex).toRgb());
+            }
+            img.src = icon_url;
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();
+        })
+    }
+});
+
+
+const logo_icon_frame_inverted = logo_basic.extend({
+    props: {
+        'iconId': {
+            type: 'Number',
+            required: true
+        },
+        'hideIcon': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+        'iconScale': {
+            type: 'Number',
+            default: function(){ return 1 }
+        },
+        'iconColor': {
+            type: 'String',
+            default: function(){ return { hex: '#ffffff' } }
+        },
+        'iconBounds': {
+            type: 'String',
+            default: function(){ return false }
+        },
+        'autoScale': {
+            type: 'Boolean',
+            default: function(){ return false }
+        }
+    },
+    data: function(){
+        return {
+            iconBox: false
+        }
+    },
+    watch:{
+        iconId: function(){ this.getLogo() },
+        hideIcon: function(){ this.update() },
+        iconColor: function(){ this.update() },
+        iconScale: function(){ this.update() }
+    },
+    methods: {
+        scale: function(){
+            if(!this.autoScale){
+                return;
+            }
+            
+            var dim = 640 * this.iconScale * 0.85;
+            var bounds = {
+                x: 0,
+                y: 0,
+                width: ((this.iconBox.maxx - this.iconBox.minx)/200)*dim,
+                height: ((this.iconBox.maxy - this.iconBox.miny)/200)*dim
+            };
+            
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            this.$emit('scale', bounds.width/titlewrap.bounds.width);		
+        },
+        process: function(result){
+            if(this.iconBounds){
+                this.iconBox = this.iconBounds;
+            }
+            else{
+                this.iconBox = result.iconbox;
+            }
+            this.defaultProcess(result);
+            this.scale();
+            this.loaded = true;
+            return false;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            var icon = $(this.$el).find('#icon');
+            var dim = 640 * this.iconScale;
+            
+            icon.attr('x', 512 - dim/2);
+            icon.attr('y', 384 - dim/2);
+            icon.attr('width', dim);
+            icon.attr('height', dim);
+            
+            var bounds = {
+                x: (this.iconBox.minx/200)*dim + (512 - dim/2),
+                y: (this.iconBox.miny/200)*dim + (384 - dim/2),
+                width: ((this.iconBox.maxx - this.iconBox.minx)/200)*dim,
+                height: ((this.iconBox.maxy - this.iconBox.miny)/200)*dim
+            };
+            
+            /*var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'rect'); //Create a path in SVG's namespace
+            newElement.setAttribute("x",bounds.x);
+            newElement.setAttribute("y",bounds.y);
+            newElement.setAttribute("width",bounds.width);
+            newElement.setAttribute("height",bounds.height);
+            newElement.style.fill = "none";
+            newElement.style.stroke = "#f00"; //Set stroke colour
+            newElement.style.strokeWidth = "1px"; //Set stroke width
+            $(this.$el).find('svg').get(0).appendChild(newElement);*/
+                            
+            // shrink bounds to 0.95
+            bounds.width *= 0.9;
+            bounds.height *= 0.9;
+            bounds.x += bounds.width*0.05;
+            bounds.y += bounds.height*0.05;
+                            
+            var titlewrap = this.wrap('title', this.title, bounds, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, bounds, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            
+            this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace], bounds);
+            
+            if(this.hideIcon){
+                icon.hide();
+            }
+            else{
+                icon.show();
+            }
+            // color icon
+            var self = this;
+            var icon_url = './icon_large/?id='+this.iconId;
+            var img = new Image();
+            img.onload = function(){
+                self.colorImage(icon,img,tinycolor(self.iconColor.hex).toRgb());
+            }
+            img.src = icon_url;
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();
+        })
+    }
+});
+
+
+const logo_letter = logo_basic.extend({
+    props: {
+        'letter': {
+            type: 'String',
+            required: true
+        },
+        'hideIcon': {
+            type: 'Boolean',
+            default: function(){ return false }
+        },
+        'letterScale': {
+            type: 'Number',
+            default: function(){ return 3.2 }
+        },
+        'letterLetterSpace': {
+            type: 'Number',
+            default: function(){ return 0 }
+        },
+        'letterFamily': {
+            type: 'String',
+            default: function () { return 'Montserrat' }
+        },
+        'letterVariant': {
+            type: 'String',
+            default: function () { return '600'	}
+        },
+        'letterColor': {
+            type: 'Object',
+            default: function(){ return { hex: '#ffffff'} }
+        }
+    },
+    watch:{
+        letter: function(){ this.getLogo() },
+        letterFamily: function(){ this.getLogo() },
+        letterVariant: function(){ this.getLogo() },
+        hideIcon: function(){ this.update() },
+        letterScale: function(){ this.update() },
+        letterLetterSpace: function(){ this.update() },
+        letterColor: function(){ this.update() }
+    },
+    methods: {
+        process: function(result){
+            var r = this.defaultProcess(result);
+            this.defaultScale();
+            this.loaded = true;
+            return r;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            var letterwrap = this.wrap('letter', this.letter, {x: 50, y: 50, width: 924, height: 668}, this.letterScale, this.letterLetterSpace, 1, true);
+            var titlewrap = this.wrap('title', this.title, {x: 50, y: 50, width: 924, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, {x: 50, y: 50, width: 924, height: 668}, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            
+            if(this.hideIcon){
+                this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace]);
+                $(this.$el).find('#letter').hide();
+            }
+            else{
+                this.distribute([letterwrap,titlewrap,taglinewrap], [32*this.titleLineSpace,18*this.taglineLineSpace]);
+                $(this.$el).find('#letter').show();
+            }
+            
+            $(this.$el).find('#letter path').css('fill', this.letterColor.hex);
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();	
+        })
+    }
+});
+
+const logo_color = logo_basic.extend({
+    props: {
+        'color1': {
+            type: 'Object',
+            default: function(){ return { hex: '#ffffff'} }
+        },
+        'color2': {
+            type: 'Object',
+            default: function(){ return { hex: '#dddddd'} }
+        },
+        'color3': {
+            type: 'Object',
+            default: function(){ return { hex: '#bbbbbb'} }
+        },
+        'color4': {
+            type: 'Object',
+            default: function(){ return { hex: '#bbbbbb'} }
+        },
+        'nth1': {
+            type: 'Number',
+            default: function(){ return 0 }
+        },
+        'nth2': {
+            type: 'Number',
+            default: function(){ return 0 }
+        },
+        'nth3': {
+            type: 'Number',
+            default: function(){ return 0 }
+        },
+        'nth4': {
+            type: 'Number',
+            default: function(){ return 0 }
+        }
+    },
+    watch:{
+        color1: function(){ this.update() },
+        color2: function(){ this.update() },
+        color3: function(){ this.update() },
+        color4: function(){ this.update() },
+        nth1: function(){ this.update() },
+        nth2: function(){ this.update() },
+        nth3: function(){ this.update() }
+    },
+    methods: {
+        process: function(result){
+            var r = this.defaultProcess(result);
+            this.defaultScale();
+            this.loaded = true;
+            return r;
+        },
+        update: function(){
+            this.defaultUpdate();
+            
+            var titlewrap = this.wrap('title', this.title, {x: 50, y: 50, width: 924, height: 668}, this.titleScale, this.titleLetterSpace, this.titleLineSpace, true);
+            var taglinewrap = this.wrap('tagline', this.tagline, {x: 50, y: 50, width: 924, height: 668}, this.taglineScale, this.taglineLetterSpace, this.taglineLineSpace, true);
+            
+            this.distribute([titlewrap,taglinewrap], [18*this.taglineLineSpace]);
+            $(this.$el).find('#letter').hide();
+            
+            $(this.$el).find('#title path').css('fill', this.color4.hex);
+                            
+            if(this.nth3 > -1){
+                $(this.$el).find('#title path').slice(0,this.nth3).css('fill', this.color3.hex);
+            }
+            if(this.nth2 > -1){
+                $(this.$el).find('#title path').slice(0,this.nth2).css('fill', this.color2.hex);
+            }
+            if(this.nth1 > -1){
+                $(this.$el).find('#title path').slice(0,this.nth1).css('fill', this.color1.hex);
+            }
+        }
+    },
+    updated: function(){
+        this.$nextTick(function (){
+            this.update();	
+        })
+    }
+});
